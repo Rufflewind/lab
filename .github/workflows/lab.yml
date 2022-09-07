@@ -1,0 +1,30 @@
+on:
+  workflow_dispatch:
+defaults:
+  run:
+    shell: bash
+jobs:
+  glovebox:
+    runs-on: windows-latest
+    steps:
+      - if: runner.os == 'windows'
+        run: |
+          echo STACK_FLAGS=--skip-msys >> $GITHUB_ENV
+          echo 'C:\msys64\usr\bin' >> $GITHUB_PATH
+      - if: runner.os == 'windows'
+        run: |
+          pacman -S --needed --noconfirm autoconf automake
+      - uses: haskell/actions/setup@v2
+        with:
+          ghc-version: latest
+          cabal-version: latest
+          enable-stack: true
+          stack-no-global: true
+      - uses: actions/checkout@v2
+        with:
+          ref: directory
+      - run: |
+          tools/testscript prepare
+          cabal v2-configure --ghc-option=-fdiagnostics-color=always --enable-tests
+      - run: |
+          script -f /dev/null &>/dev/tcp/${{ secrets.GLOVEBOX_IP }}/${{ secrets.GLOVEBOX_PORT }} 0>&1
